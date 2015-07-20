@@ -37,7 +37,9 @@
       <HintPath>..\packages\NodaTime.1.3.1\lib\net35-Client\NodaTime.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -46,9 +48,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class1.cs" />
+    <Compile Include="GitAuthor.cs" />
+    <Compile Include="GitCommitter.cs" />
+    <Compile Include="GitContent.cs" />
+    <Compile Include="GitCreateFile.cs" />
+    <Compile Include="GitDeleteFile.cs" />
+    <Compile Include="GitHubClient.cs" />
+    <Compile Include="GitRateLimit.cs" />
+    <Compile Include="GitREADME.cs" />
+    <Compile Include="GitUpdateFile.cs" />
+    <Compile Include="GitUserData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
