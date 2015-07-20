@@ -8,7 +8,7 @@ namespace GitHubAPIClient_SampleApp
     {
         static void Main(string[] args)
         {
-            if (GitHubAPIClient.GitHubClient.RateLimitExceeded())
+            if (GitHubClient.RateLimitExceeded())
             {
                 Console.WriteLine("Rate limit has been exceeded - terminating...");
             }
