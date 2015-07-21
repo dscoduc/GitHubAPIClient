@@ -23,9 +23,6 @@ namespace GitHubAPIClient_SampleApp
                     log.InfoFormat("{0}: '{1}'", key, ConfigurationManager.AppSettings[key]);
             }
 
-            //TODO: Remove before flight
-            // string filename = "c:\\temp\\test-signed.ps1";
-
             string filename = string.Empty;
 
             try
@@ -33,7 +30,9 @@ namespace GitHubAPIClient_SampleApp
                 // get filename from startup arg
                 if (args.Length > 0)
                     filename = args[0].ToString();
-                
+
+                if (string.IsNullOrEmpty(filename)) { throw new ArgumentNullException("filename"); }
+
                 if (GitHubClient.RateLimitExceeded())
                 {
                     Console.WriteLine("Rate limit has been exceeded - terminating...");

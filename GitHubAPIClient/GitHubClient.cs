@@ -1,6 +1,5 @@
 ﻿using log4net;
 using Newtonsoft.Json;
-using NodaTime;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -20,7 +19,6 @@ namespace GitHubAPIClient
         private static string committer_name = ConfigurationManager.AppSettings["committer_name"].ToString();
         private static string committer_email = ConfigurationManager.AppSettings["committer_email"].ToString();
         private static string commit_message = ConfigurationManager.AppSettings["commit_message"].ToString();
-        private static DateTimeZone timeZone = DateTimeZoneProviders.Tzdb.GetSystemDefault();
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         #endregion // private declarations
 
@@ -544,10 +542,10 @@ namespace GitHubAPIClient
             log.InfoFormat("Request: {0} [{1}]", requestMethod, requestURL);
 
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestURL);
-            request.Headers.Add("Time-Zone", timeZone.ToString());  // Provide web server timezone
             request.Method = requestMethod.ToString();
             request.ContentType = "text/json";  // everything we're doing here is json based
-            request.UserAgent = userAgent;  // Must be authenticated username or repository
+            request.UserAgent = userAgent;  // GitHub requires userAgent be your username or repository
+            request.Accept = "*/*";
             request.Headers.Add("authorization: token " + auth_token);
 
             return request;
