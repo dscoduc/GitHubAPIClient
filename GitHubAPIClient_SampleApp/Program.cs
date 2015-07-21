@@ -4,8 +4,6 @@ using System;
 using System.Configuration;
 using System.IO;
 using System.Reflection;
-using System.Security;
-using System.Security.Cryptography;
 
 namespace GitHubAPIClient_SampleApp
 {
