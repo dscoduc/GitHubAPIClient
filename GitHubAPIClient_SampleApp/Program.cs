@@ -4,6 +4,8 @@ using System;
 using System.Configuration;
 using System.IO;
 using System.Reflection;
+using System.Security;
+using System.Security.Cryptography;
 
 namespace GitHubAPIClient_SampleApp
 {
@@ -15,16 +17,19 @@ namespace GitHubAPIClient_SampleApp
         {
             log.Info("Application is starting");
 
+            // Write all app settings except auth_key to debug log
             foreach (string key in ConfigurationManager.AppSettings)
             {
                 if (key != "auth_token")
                     log.DebugFormat("{0} : {1}", key, ConfigurationManager.AppSettings[key.ToString()].ToString());
             }
 
+            //TODO: Remove before flight
             string filename = "c:\\temp\\test-signed.ps1";
+
+            // get filename from startup arg
             if(args.Length > 0)
                 filename = args[0].ToString();
-
 
             if (GitHubClient.RateLimitExceeded())
             {
