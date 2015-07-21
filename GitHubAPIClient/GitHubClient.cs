@@ -114,14 +114,22 @@ namespace GitHubAPIClient
         /// <returns>Returns the RateLimit object</returns>
         public static GitRateLimit GetRateLimit()
         {
-            log.Info("Requesting the Rate Limit from GitHub");
-            
-            HttpWebRequest request = buildWebRequest("https://api.github.com/rate_limit");
+            try
+            {
+                log.Info("Requesting the Rate Limit from GitHub");
 
-            string jsonResult = getResponseStream(request);
+                HttpWebRequest request = buildWebRequest("https://api.github.com/rate_limit");
 
-            GitRateLimit rateLimit = JsonConvert.DeserializeObject<GitRateLimit>(jsonResult);
-            return rateLimit;
+                string jsonResult = getResponseStream(request);
+
+                GitRateLimit rateLimit = JsonConvert.DeserializeObject<GitRateLimit>(jsonResult);
+                return rateLimit;
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex);
+                throw;
+            }
         }
 
         /// <summary>
