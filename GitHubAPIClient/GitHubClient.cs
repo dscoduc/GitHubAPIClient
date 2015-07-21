@@ -1,10 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using log4net;
+using Newtonsoft.Json;
 using NodaTime;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Net;
+using System.Reflection;
 
 namespace GitHubAPIClient
 {
@@ -19,6 +21,7 @@ namespace GitHubAPIClient
         private static string committer_email = ConfigurationManager.AppSettings["committer_email"].ToString();
         private static string commit_message = ConfigurationManager.AppSettings["commit_message"].ToString();
         private static DateTimeZone timeZone = DateTimeZoneProviders.Tzdb.GetSystemDefault();
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         #endregion // private declarations
 
         #region public functions
@@ -32,15 +35,17 @@ namespace GitHubAPIClient
         {
             try
             {
+                log.Info("Retrieving authenticated user");
                 HttpWebRequest request = buildWebRequest("https://api.github.com/user");
 
                 string jsonResult = getResponseStream(request);
+
                 GitUserData userData = JsonConvert.DeserializeObject<GitUserData>(jsonResult);
                 return userData;
             }
             catch (Exception ex)
             {
-                //log.debug(ex);
+                log.Debug(ex);
                 throw;
             }
         }
@@ -55,36 +60,38 @@ namespace GitHubAPIClient
         {
             try
             {
+                log.Info("Requesting the default README from the Repository");
+
                 // GET /repos/:owner/:repo/readme
                 string url = string.Format("https://api.github.com/repos/{0}/{1}/readme", repository_owner, repository_name);
+
                 // Build request
                 HttpWebRequest request = buildWebRequest(method.GET, url);
 
                 // Submit request 
                 string jsonResult = getResponseStream(request);
-
+                
                 // convert json to object
                 GitREADME readme = JsonConvert.DeserializeObject<GitREADME>(jsonResult);
 
-                //log.Debug("Retrieved README");
                 return readme;
             }
             catch (WebException wex)
             {
                 if ((wex.Response).Headers["status"] == "404 Not Found")
                 {
-                    //log.Debug(wex.Message);
+                    log.Info(wex.Message);
                     return null;
                 }
                 else
                 {
-                    //log.Error(wex);
+                    log.Warn(wex);
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                //log.Error(ex);
+                log.Error(ex);
                 throw;
             }
         }
@@ -107,9 +114,12 @@ namespace GitHubAPIClient
         /// <returns>Returns the RateLimit object</returns>
         public static GitRateLimit GetRateLimit()
         {
+            log.Info("Requesting the Rate Limit from GitHub");
+            
             HttpWebRequest request = buildWebRequest("https://api.github.com/rate_limit");
 
             string jsonResult = getResponseStream(request);
+
             GitRateLimit rateLimit = JsonConvert.DeserializeObject<GitRateLimit>(jsonResult);
             return rateLimit;
         }
@@ -139,6 +149,8 @@ namespace GitHubAPIClient
             {
                 if (string.IsNullOrEmpty(ContentPath)) { throw new ArgumentNullException(); }
 
+                log.Info("Requesting the content of a file");
+
                 // GET /repos/:owner/:repo/contents/:path
                 string url = string.Format("https://api.github.com/repos/{0}/{1}/contents/{2}", repository_owner, repository_name, ContentPath);
 
@@ -151,25 +163,24 @@ namespace GitHubAPIClient
                 // convert json to object
                 GitContent content = JsonConvert.DeserializeObject<GitContent>(jsonResult);
 
-                //log.DebugFormat("Retrieved content [{0}]", ContentPath);
                 return content;
             }
             catch (WebException wex)
             {
                 if ((wex.Response).Headers["status"] == "404 Not Found")
                 {
-                    //log.Debug(wex.Message);
+                    log.Info(wex.Message);
                     return null;
                 }
                 else
                 {
-                    //log.Error(wex);
+                    log.Warn(wex);
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                // log.Error(ex);
+                log.Error(ex);
                 throw;
             }
         }
@@ -188,6 +199,8 @@ namespace GitHubAPIClient
             {
                 // GET /repos/:owner/:repo/contents
                 string url = string.Format("https://api.github.com/repos/{0}/{1}/contents", repository_owner, repository_name);
+
+                log.Info("Requesting a list of all files in the Repository");
 
                 // Build request
                 HttpWebRequest request = buildWebRequest(method.GET, url);
@@ -208,7 +221,7 @@ namespace GitHubAPIClient
                     contents.Add(content);
                 }
 
-                //log.DebugFormat("Retrieved {0} items from {1}", contents.count, ContentPath);
+                log.InfoFormat("Retrieved {0} content items from the Repository", contents.Count);
                 return contents;
             }
             catch (WebException wex)
@@ -216,18 +229,18 @@ namespace GitHubAPIClient
 
                 if ((wex.Response).Headers["status"] == "404 Not Found")
                 {
-                    //log.Debug(wex.Message);
+                    log.Warn(wex.Message);
                     return null;
                 }
                 else
                 {
-                    //log.Error(wex);
+                    log.Warn(wex);
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                // log.Error(ex);
+                log.Error(ex);
                 throw;
             }
         }
@@ -257,17 +270,18 @@ namespace GitHubAPIClient
             // if ContentPath isn't specified then assume root and use the source file name
             if (string.IsNullOrEmpty(ContentPath)) { ContentPath = Path.GetFileName(SourceFile); }
 
+            log.Info("Processing a request to Create/Update a file in the Repository");
+
             // See if we can find a file already in the hub
             GitContent content = GitHubClient.GetContent(ContentPath);
             if (content != null)
             {
-                //log.DebugFormat("Updating existing file [{0}]", content.path);
+                log.Info("An existing file was found in the Repository");
                 return UpdateFile(SourceFile, content);
             }
 
-            //log.DebugFormat("Creating new file [{0}]", ContentPath);
+            log.Info("No existing file was found in the Repository");
             return CreateFile(SourceFile, ContentPath);
-
         }
 
         /// <summary>
@@ -282,13 +296,12 @@ namespace GitHubAPIClient
             {
                 if (string.IsNullOrEmpty(ContentPath)) { throw new ArgumentNullException("Content path is required"); }
 
+                log.Info("Requesting the deletion of a file");
+
                 // See if we can find a file already in the hub
                 GitContent content = GitHubClient.GetContent(ContentPath);
                 if (content == null)
-                {
-                    //log.DebugFormat("File not found [{0}]", ContentPath);
                     return false;            
-                }
 
                 // DELETE /repos/:owner/:repo/contents/:path
                 string url = string.Format("https://api.github.com/repos/{0}/{1}/contents/{2}", repository_owner, repository_name, content.path);
@@ -315,18 +328,18 @@ namespace GitHubAPIClient
 
                 string jsonResult = getResponseStream(request);
                 
-                //log.DebugFormat("File deleted [{0}]", ContentPath);
+                log.Info("File successfully deleted from Repository");
                 return true;
 
             }
             catch (FileNotFoundException fex)
             {
-                //log.Debug(fex.message);
+                log.WarnFormat("File NOT deleted from Repository - {0}", fex.Message);
                 return false;
             }
             catch (Exception ex)
             {
-                //log.Error(ex);
+                log.Error(ex);
                 throw;
             }
         }
@@ -343,6 +356,8 @@ namespace GitHubAPIClient
             try
             {
                 if (string.IsNullOrEmpty(SourceFile) || string.IsNullOrEmpty(ContentPath)) { throw new ArgumentNullException(); }
+
+                log.Info("Requesting the creation of a new file");
 
                 // PUT /repos/:owner/:repo/contents/:path
                 string url = string.Format("https://api.github.com/repos/{0}/{1}/contents/{2}", repository_owner, repository_name, ContentPath);
@@ -369,12 +384,12 @@ namespace GitHubAPIClient
 
                 string jsonResult = getResponseStream(request);
 
-                //log.DebugFormat("File created [{0}]", ContentPath);
+                log.Info("File sucessfully created in Repository");
                 return true;
             }
             catch (Exception ex)
             {
-                //log.debug(ex);
+                log.Error(ex);
                 return false;
             }
         }
@@ -395,7 +410,7 @@ namespace GitHubAPIClient
                 GitContent content = GitHubClient.GetContent(ContentPath);
                 if (content == null)
                 {
-                    //log.DebugFormat("Unable to locate file [{0}]", ContentPath);
+                    log.Warn("Aborting Update due to missing file");
                     return false;
                 }
 
@@ -403,7 +418,7 @@ namespace GitHubAPIClient
             }
             catch (Exception ex)
             { 
-                //log.Error(ex);
+                log.Error(ex);
                 return false;
             }
         }
@@ -419,6 +434,8 @@ namespace GitHubAPIClient
             try
             {
                 if (string.IsNullOrEmpty(SourceFile) || Content == null) { throw new ArgumentNullException(); }
+
+                log.Info("Requesting an update to a file in the Repository");
 
                 // PUT /repos/:owner/:repo/contents/:path
                 string url = string.Format("https://api.github.com/repos/{0}/{1}/contents/{2}", repository_owner, repository_name, Content.path);
@@ -446,17 +463,17 @@ namespace GitHubAPIClient
 
                 string jsonResult = getResponseStream(request);
 
-                //log.DebugFormat("File updated [{0}]", ContentPath);
+                log.Info("File sucessfully updated in the Repository");
                 return true;
             }
             catch (FileNotFoundException fex)
             {
-                //log.Debug(fex.message);
+                log.Warn(fex.Message);
                 return false;
             }
             catch (Exception ex)
             {
-                //log.Error(ex);
+                log.Error(ex);
                 return false;
             }
         }
@@ -473,8 +490,10 @@ namespace GitHubAPIClient
 
             GitContent content = GitHubClient.GetContent(ContentPath);
             if (content == null)
+            {
+                log.Warn("No file matching the request was found in the Repository");
                 return string.Empty;
-            
+            }
             return GetFileContents(content);
         }
 
@@ -510,9 +529,11 @@ namespace GitHubAPIClient
         /// <param name="requestMethod">a http request method type (ex. GET, PUT, POST)</param>
         /// <param name="requestURL">The URL to perform the request against</param>
         /// <returns>Prepared request object</returns>
-        private static HttpWebRequest buildWebRequest(method requestMethod, string requestURL = "")
+        private static HttpWebRequest buildWebRequest(method requestMethod, string requestURL)
         {
             if (string.IsNullOrEmpty(requestURL)) { throw new ArgumentNullException("Must provide request URL"); }
+
+            log.InfoFormat("Request: {0} [{1}]", requestMethod, requestURL);
 
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestURL);
             request.Headers.Add("Time-Zone", timeZone.ToString());  // Provide web server timezone
@@ -533,12 +554,17 @@ namespace GitHubAPIClient
         {
             if ((request == null)) { throw new ArgumentNullException("An empty request object was passed"); }
 
+            string jsonResult = string.Empty;
+
             using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
             {
                 using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
                 {
-                    return streamReader.ReadToEnd();
+                    jsonResult = streamReader.ReadToEnd();
                 }
+
+                log.DebugFormat("JSON response received:{0}{1}", Environment.NewLine, jsonResult);
+                return jsonResult;
             }
         }
 
