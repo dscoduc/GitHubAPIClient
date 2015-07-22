@@ -27,7 +27,7 @@ namespace GitHubAPIClient
         #region public functions
         /// <summary>
         /// Ex. 
-        ///     GitUserData user = GitHubAPIClient.GetUser();
+        ///     GitUserData user = GitHubClient.GetUser();
         ///     Console.WriteLine("Name: {0}{1}Email: {2}", user.name, Environment.NewLine, user.email);
         /// </summary>
         /// <returns>Returns the authenticated user object</returns>
@@ -52,7 +52,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex.
-        ///     GitREADME readme = GitHubAPIClient.GetReadme();
+        ///     GitREADME readme = GitHubClient.GetReadme();
         ///     Console.WriteLine(readme.name);
         /// </summary>
         /// <returns>Returns the Repository default README object</returns>
@@ -98,7 +98,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex.
-        ///     Console.WriteLine(GitHubAPIClient.GetReadme().DecodedContent);
+        ///     Console.WriteLine(GitHubClient.GetReadme().DecodedContent);
         /// </summary>
         /// <returns>Returns the text found in the Repository default README file</returns>
         public static string GetReadme_Content()
@@ -108,7 +108,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex.
-        ///     GitRateLimit rateLimit = GitHubAPIClient.GetRateLimit();
+        ///     GitRateLimit rateLimit = GitHubClient.GetRateLimit();
         ///     Console.WriteLine("Rate Limit: {0}{1}Rate Remaining: {2}", rateLimit.rate.limit, Environment.NewLine, rateLimit.rate.remaining);
         /// </summary>
         /// <returns>Returns the RateLimit object</returns>
@@ -134,7 +134,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex.
-        ///     if (GitHubAPIClient.RateLimitExceeded())
+        ///     if (GitHubClient.RateLimitExceeded())
         ///         Console.WriteLine("Rate limit hass exceeded allowed connections");
         /// </summary>
         /// <returns>Have you exceeded your allowed connections?</returns>
@@ -146,7 +146,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex. 
-        ///     GitContent content = GitHubAPIClient.GetContent("hello.txt");
+        ///     GitContent content = GitHubClient.GetContent("hello.txt");
         ///     Console.WriteLine(content.name); 
         /// </summary>
         /// <param name="ContentPath">The path of the file in the repository (ex. 'hello.txt' or 'folder/hello.txt')</param>
@@ -313,7 +313,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex. 
-        ///     bool result = GitHubAPIClient.UploadContent("c:\\temp\\myfile.ps1");
+        ///     bool result = GitHubClient.UploadContent("c:\\temp\\myfile.ps1");
         /// </summary>
         /// <param name="SourceFile">The full file path to upload (ex. c:\temp\hello.txt)</param>
         /// <returns>Did upload succeeded?</returns>
@@ -324,7 +324,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex. 
-        ///     bool result = GitHubAPIClient.UploadContent("c:\\temp\\myfile.ps1", "myfile.ps1");
+        ///     bool result = GitHubClient.UploadContent("c:\\temp\\myfile.ps1", "myfile.ps1");
         /// </summary>
         /// <param name="SourceFile">The full file path to upload (ex. c:\temp\hello.txt)</param>
         /// <param name="ContentPath">The path of the file in the repository (ex. 'hello.txt' or 'folder/hello.txt')</param>
@@ -352,7 +352,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex.
-        ///     GitHubAPIClient.DeleteContent("Hello.ps1")
+        ///     GitHubClient.DeleteContent("Hello.ps1")
         /// </summary>
         /// <param name="ContentPath"></param>
         /// <returns></returns>
@@ -412,7 +412,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// 
-        /// Ex. GitHubAPIClient.CreateFile("c:\\temp\\myfile.ps1", "myfile.ps1");
+        /// Ex. GitHubClient.CreateFile("c:\\temp\\myfile.ps1", "myfile.ps1");
         /// </summary>
         /// <param name="SourceFile">The full file path to upload (ex. c:\temp\hello.txt)</param>
         /// <param name="ContentPath">The path of the file in the repository (ex. 'hello.txt' or 'folder/hello.txt')</param>
@@ -462,7 +462,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// 
-        /// Ex. GitHubAPIClient.UploadFile("c:\\temp\\myfile.ps1", "myfile.ps1");
+        /// Ex. GitHubClient.UploadFile("c:\\temp\\myfile.ps1", "myfile.ps1");
         /// </summary>
         /// <param name="SourceFile">The full file path to upload (ex. c:\temp\hello.txt)</param>
         /// <param name="ContentPath">The path of the file in the repository (ex. 'hello.txt' or 'folder/hello.txt')</param>
@@ -546,7 +546,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex.
-        ///     Console.WriteLine(GitHubAPIClient.GetFileContents("hello.txt"));
+        ///     Console.WriteLine(GitHubClient.GetFileContents("hello.txt"));
         /// </summary>
         /// <param name="ContentPath">The path of the file in the repository (ex. 'hello.txt' or 'folder/hello.txt')</param>
         /// <returns>Plain text output of the Base64 encoded contents of the requested file</returns>
@@ -565,7 +565,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex.
-        ///     Console.Write(GitHubAPIClient.GetFileContents(Content));
+        ///     Console.Write(GitHubClient.GetFileContents(Content));
         /// </summary>
         /// <param name="Content">Content object</param>
         /// <returns>Plain text output of the Base64 encoded contents of the requested file</returns>
