@@ -30,7 +30,7 @@ namespace GitHubAPIClient
         public static void AddCache(string cacheKey, object cacheData)
         {
             ObjectCache cache = MemoryCache.Default;
-            CacheItemPolicy policy = new CacheItemPolicy() { AbsoluteExpiration = DateTimeOffset.Now.AddHours(12.0) };
+            CacheItemPolicy policy = new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(2) };
             cache.Add(cacheKey, cacheData, policy);
 
         }
