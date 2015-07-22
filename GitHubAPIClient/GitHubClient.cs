@@ -661,7 +661,7 @@ namespace GitHubAPIClient
                 object cacheData = Utils.GetCache(request.Address.AbsoluteUri);
 
                 
-                if (cacheData != null || request.Method != "GET")
+                if (cacheData != null && request.Method == method.GET.ToString())
                 {
                     // data found in cache, load it up
                     cachedResponse = (GitResponse)cacheData;

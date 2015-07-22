@@ -24,7 +24,7 @@ namespace GitHubAPIClient_SampleApp
                     log.InfoFormat("{0}: '{1}'", key, ConfigurationManager.AppSettings[key]);
             }
 
-            string filename = "c:\\temp\\test.ps1"; // string.Empty;
+            string filename = string.Empty;
 
             try
             {
