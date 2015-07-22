@@ -6,6 +6,7 @@ using System.Configuration;
 using System.IO;
 using System.Net;
 using System.Reflection;
+using System.Runtime.Caching;
 
 namespace GitHubAPIClient
 {
@@ -20,6 +21,7 @@ namespace GitHubAPIClient
         private static string committer_email = ConfigurationManager.AppSettings["committer_email"].ToString();
         private static string commit_message = ConfigurationManager.AppSettings["commit_message"].ToString();
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        //private static ObjectCache memoryCache = MemoryCache.Default;
         #endregion // private declarations
 
         #region public functions
@@ -36,7 +38,7 @@ namespace GitHubAPIClient
                 log.Info("Retrieving authenticated user");
                 HttpWebRequest request = buildWebRequest("https://api.github.com/user");
 
-                string jsonResult = getResponseStream(request);
+                string jsonResult = getResponse(request);
 
                 GitUserData userData = JsonConvert.DeserializeObject<GitUserData>(jsonResult);
                 return userData;
@@ -67,7 +69,7 @@ namespace GitHubAPIClient
                 HttpWebRequest request = buildWebRequest(method.GET, url);
 
                 // Submit request 
-                string jsonResult = getResponseStream(request);
+                string jsonResult = getResponse(request);
                 
                 // convert json to object
                 GitREADME readme = JsonConvert.DeserializeObject<GitREADME>(jsonResult);
@@ -118,7 +120,7 @@ namespace GitHubAPIClient
 
                 HttpWebRequest request = buildWebRequest("https://api.github.com/rate_limit");
 
-                string jsonResult = getResponseStream(request);
+                string jsonResult = getResponse(request);
 
                 GitRateLimit rateLimit = JsonConvert.DeserializeObject<GitRateLimit>(jsonResult);
                 return rateLimit;
@@ -164,7 +166,7 @@ namespace GitHubAPIClient
                 HttpWebRequest request = buildWebRequest(method.GET, url);
 
                 // Submit request 
-                string jsonResult = getResponseStream(request);
+                string jsonResult = getResponse(request);
 
                 // convert json to object
                 GitContent content = JsonConvert.DeserializeObject<GitContent>(jsonResult);
@@ -193,7 +195,7 @@ namespace GitHubAPIClient
 
         /// <summary>
         /// Ex. 
-        ///     List<GitContent> contents = GitHubAPIClient.GetContents();
+        ///     List<GitContent> contents = GitHubClient.GetContents();
         ///     foreach (GitContent entry in contents)
         ///         Console.WriteLine("{0} [{1}] [{2}]", entry.name, entry.FileSize, entry.download_url);
         /// </summary>
@@ -201,6 +203,7 @@ namespace GitHubAPIClient
         public static List<GitContent> GetContents()
         {
             List<GitContent> contents = new List<GitContent>();
+            
             try
             {
                 // GET /repos/:owner/:repo/contents
@@ -211,8 +214,41 @@ namespace GitHubAPIClient
                 // Build request
                 HttpWebRequest request = buildWebRequest(method.GET, url);
 
-                // Submit request 
-                string jsonResult = getResponseStream(request);
+                //// check if it's in cache already
+                //object cacheData = Utils.GetCache(url);
+                //if (cacheData != null)
+                //{
+                //    // load from cache
+                //    gitResponse = (GitResponse)cacheData;
+
+                //    // grab etag and add into request
+                //    request.Headers.Add("If-None-Match", gitResponse.GetETAG);
+
+                //    // perform the request
+                //    GitResponse checkResponse = getResponse(request);
+
+                //    // if request has been modified then replace gitResponse with recent response
+                //    if (checkResponse.GetStatus != "304 Not Modified")
+                //    {
+                //        log.Info("Cached data is stale - updating memory cache with latest and greatest");
+                        
+                //        // looks like our cached data is stale
+                //        gitResponse = checkResponse;
+
+                //        // better add it into cache for next time
+                //        Utils.AddCache(url, checkResponse);
+                //    }
+                //}
+                //else
+                //{
+                //    // not in cache, let's load some fresh data...
+                //    gitResponse = getResponse(request);
+                    
+                //    // ...and store it in cache for next time
+                //    addCache(url, gitResponse);
+                //}
+
+                string jsonResult = getResponse(request);
 
                 //    // No obvious way to tell difference between a json result with a 
                 //    // single entry result (non-array) or a json with multiple entries (array).  
@@ -227,7 +263,7 @@ namespace GitHubAPIClient
                     contents.Add(content);
                 }
 
-                log.InfoFormat("Retrieved {0} content items from the Repository", contents.Count);
+                log.InfoFormat("Returning {0} content items", contents.Count);
                 return contents;
             }
             catch (WebException wex)
@@ -248,6 +284,30 @@ namespace GitHubAPIClient
             {
                 log.Error(ex);
                 throw;
+            }
+        }
+
+        public static void addCache(string cacheKey, object cacheData)
+        {
+            ObjectCache cache = MemoryCache.Default;
+            CacheItemPolicy policy = new CacheItemPolicy() { AbsoluteExpiration = DateTimeOffset.Now.AddHours(12.0) };
+            cache.Add(cacheKey, cacheData, policy);
+
+        }
+
+        public static object getCache(string cacheKey)
+        {
+            ObjectCache memoryCache = MemoryCache.Default;
+            object cacheData = (object)memoryCache.Get(cacheKey);
+            if (cacheData != null)
+            {
+                log.InfoFormat("Data found for memory cache key [{0}]", cacheKey);
+                return cacheData;
+            }
+            else
+            {
+                log.InfoFormat("no Cache data found for cache key [{0}]", cacheKey);
+                return null;
             }
         }
 
@@ -332,7 +392,7 @@ namespace GitHubAPIClient
                 }
                 #endregion // Build Request
 
-                string jsonResult = getResponseStream(request);
+                string jsonResult = getResponse(request);
                 
                 log.Info("File successfully deleted from Repository");
                 return true;
@@ -388,7 +448,7 @@ namespace GitHubAPIClient
                 }
                 #endregion // Build Request
 
-                string jsonResult = getResponseStream(request);
+                string jsonResult = getResponse(request);
 
                 log.Info("File sucessfully created in Repository");
                 return true;
@@ -467,7 +527,7 @@ namespace GitHubAPIClient
                 }
                 #endregion // Build Request
 
-                string jsonResult = getResponseStream(request);
+                string jsonResult = getResponse(request);
 
                 log.Info("File sucessfully updated in the Repository");
                 return true;
@@ -551,26 +611,126 @@ namespace GitHubAPIClient
             return request;
         }
 
-        /// <summary>
-        /// Performs the web request
-        /// </summary>
-        /// <param name="request">a valid HttpWebRequest object</param>
-        /// <returns>returns back the response stream</returns>
-        private static string getResponseStream(HttpWebRequest request)
+        ///// <summary>
+        ///// Performs the web request without returning the response headers
+        ///// </summary>
+        ///// <param name="request">a valid HttpWebRequest object</param>
+        ///// <returns>returns back the response stream and the response headers</returns>
+        //private static string getResponseStream(HttpWebRequest request)
+        //{
+        //    WebHeaderCollection responseHeaders;
+        //    return getResponseStream(request, out responseHeaders);
+        //}
+
+        ///// <summary>
+        ///// Performs the web request and returns the response headers
+        ///// </summary>
+        ///// <param name="request">a valid HttpWebRequest object</param>
+        ///// <param name="responseHeaders">collection of response headers</param>
+        ///// <returns>returns back the response stream and the response headers</returns>
+        //private static string getResponseStream(HttpWebRequest request, out WebHeaderCollection responseHeaders)
+        //{
+        //    if ((request == null)) { throw new ArgumentNullException("An empty request object was passed"); }
+
+        //    string jsonResult = string.Empty;
+
+        //    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+        //    {
+        //        responseHeaders = response.Headers;
+        //        using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
+        //        {
+        //            jsonResult = streamReader.ReadToEnd();
+        //        }
+                
+        //        log.DebugFormat("JSON response received:{0}{1}", Environment.NewLine, jsonResult);
+        //        return jsonResult;
+        //    }
+        //}
+
+        private static string getResponse(HttpWebRequest request)
         {
-            if ((request == null)) { throw new ArgumentNullException("An empty request object was passed"); }
+            HttpWebResponse getResponse;
+            GitResponse cachedResponse;
+            string jsonResponse = string.Empty;
 
-            string jsonResult = string.Empty;
-
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            try
             {
-                using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
-                {
-                    jsonResult = streamReader.ReadToEnd();
-                }
+                if ((request == null)) { throw new ArgumentNullException("An empty request object was passed"); }
 
-                log.DebugFormat("JSON response received:{0}{1}", Environment.NewLine, jsonResult);
-                return jsonResult;
+                // check if the url is in cache
+                object cacheData = Utils.GetCache(request.Address.AbsoluteUri);
+
+                
+                if (cacheData != null || request.Method != "GET")
+                {
+                    // data found in cache, load it up
+                    cachedResponse = (GitResponse)cacheData;
+
+                    // grab etag and add into request to be made to see if it's expired
+                    request.Headers.Add("If-None-Match", cachedResponse.GetETAG);
+
+                    // perform the request to see if the response would be different
+                    try
+                    {
+                        // if data is stale then a HTTP 304 response will drop this into an WebException
+                        // else it will contain updated information
+                        using (getResponse = (HttpWebResponse)request.GetResponse())
+                        {
+                            log.Info("Cached data is stale - updating memory cache with latest and greatest");
+                            using (StreamReader streamReader = new StreamReader(getResponse.GetResponseStream()))
+                            {
+                                jsonResponse = streamReader.ReadToEnd();
+                                log.DebugFormat("JSON response received:{0}{1}", Environment.NewLine, jsonResponse);
+
+                                // add latest info to memory cache
+                                Utils.AddCache(request.Address.AbsoluteUri, new GitResponse(jsonResponse, getResponse.Headers));
+
+                                // send back the jsonResponse
+                                return jsonResponse;
+                            }
+                        }
+                    }
+                    catch (WebException wex)
+                    {
+                        if (wex.Response != null && wex.Response.Headers.Get("Status") == "304 Not Modified")
+                        {
+                            log.Info("Cached data is valid - using cache instead of a new request");
+                            return cachedResponse.JsonResponse;
+                        }
+                        else
+                        {
+                            log.Error(wex);
+                            throw;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.Error(ex);
+                        throw;
+                    }
+
+                }
+                else
+                {
+                    using (getResponse = (HttpWebResponse)request.GetResponse())
+                    {
+                        using (StreamReader streamReader = new StreamReader(getResponse.GetResponseStream()))
+                        {
+                            jsonResponse = streamReader.ReadToEnd();
+                            log.DebugFormat("JSON response received:{0}{1}", Environment.NewLine, jsonResponse);
+
+                            // add latest info to memory cache
+                            Utils.AddCache(request.Address.AbsoluteUri, new GitResponse(jsonResponse, getResponse.Headers));
+
+                            return jsonResponse;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
             }
         }
 
